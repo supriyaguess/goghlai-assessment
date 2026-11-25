@@ -68,6 +68,26 @@ export type Person = { ws: string; sub: string; name: string; email?: string };
 
 export type Keyring = { ws: string; creator: string; createdAt: Date };
 
+export type BillingStatus = 'none' | 'incomplete' | 'active' | 'past_due' | 'canceled';
+
+export type Billing = {
+  workspace: string;
+  nonce: string;
+  attempt: number;
+  customerId: string | null;
+  subscriptionId: string | null;
+  status: BillingStatus;
+  seats: number;
+  payment: { status: string; errorCode: string | null } | null;
+  nextActionUrl: string | null;
+  cancelAtPeriodEnd: boolean;
+  periodEnd: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type BillingEvent = { eventId: string; type: string; at: Date };
+
 let connecting: Promise<Db> | undefined;
 
 export function getDb(): Promise<Db> {
@@ -86,6 +106,8 @@ export async function cols() {
     keys: d.collection<KeyDoc>('keys'),
     keyring: d.collection<Keyring>('keyring'),
     people: d.collection<Person>('people'),
+    billing: d.collection<Billing>('billing'),
+    billingEvents: d.collection<BillingEvent>('billing_events'),
   };
 }
 
@@ -107,6 +129,9 @@ export async function ensureIndexes() {
     c.keys.createIndex({ ws: 1, sub: 1 }, { unique: true }),
     c.keyring.createIndex({ ws: 1 }, { unique: true }),
     c.people.createIndex({ ws: 1, sub: 1 }, { unique: true }),
+    c.billing.createIndex({ workspace: 1 }, { unique: true }),
+    c.billing.createIndex({ customerId: 1 }),
+    c.billingEvents.createIndex({ eventId: 1 }, { unique: true }),
   ]);
 }
 

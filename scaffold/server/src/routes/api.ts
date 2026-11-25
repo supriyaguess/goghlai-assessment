@@ -7,6 +7,8 @@ import { roleIn, sessionFromCookie, type Session } from '../lib/session.js';
 import { claim, release, setStatus } from '../lib/conversations.js';
 import { createReply } from '../lib/outbox.js';
 import { notes, validContact } from './notes.js';
+import { billingApi } from './billing.js';
+import { canSend } from '../lib/billing.js';
 
 export const api = Router();
 
@@ -41,6 +43,7 @@ api.use('/api', async (req, res, next) => {
 });
 
 api.use(notes);
+api.use(billingApi);
 
 api.get('/api/me', (req, res) => {
   const s = req.session!;
@@ -143,6 +146,7 @@ api.post('/api/conversations/:contact/reply', async (req, res) => {
   if (!validContact(req.params.contact)) return res.status(400).json({ error: 'invalid contact' });
   const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > 4000) return res.status(400).json({ error: 'text required (max 4000 chars)' });
+  if (!(await canSend(m.ws))) return res.status(402).json({ error: 'subscription canceled' });
   const ref = typeof req.body?.clientRef === 'string' && req.body.clientRef.length <= 80 ? req.body.clientRef : randomUUID();
   await createReply(m.ws, req.params.contact, text, ref, req.session!.sub);
   res.status(202).json({ clientRef: ref });

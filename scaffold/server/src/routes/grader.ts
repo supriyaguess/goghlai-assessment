@@ -5,6 +5,7 @@ import { cols } from '../db.js';
 import { getRedis } from '../redis.js';
 import { claim } from '../lib/conversations.js';
 import { createReply } from '../lib/outbox.js';
+import { billingState, canSend, changeSeats, subscribeWorkspace, validSeats } from '../lib/billing.js';
 
 export const grader = Router();
 
@@ -41,7 +42,7 @@ grader.get('/__grader/snapshot', async (_req, res) => {
     for (const cv of await convs.find({ ws }).toArray()) (contacts[cv.contact] ??= { inbound: [], assignee: null }).assignee = cv.assignee;
     const outbound: Record<string, string> = {};
     for (const o of await outbox.find({ ws }).toArray()) outbound[o.clientRef] = o.status;
-    out[ws] = { contacts, outbound };
+    out[ws] = { contacts, outbound, billing: await billingState(ws) };
   }
   res.json({ workspaces: out });
 });
@@ -50,6 +51,7 @@ grader.post('/__grader/reply', async (req, res) => {
   const { workspace, contact, text, client_ref } = req.body ?? {};
   if (!isWorkspace(workspace)) return res.status(404).json({ error: 'unknown workspace' });
   if ([contact, text, client_ref].some((v) => typeof v !== 'string' || !v || v.length > 4000) || contact.length > 64 || client_ref.length > 100) return res.status(400).json({ error: 'contact, text and client_ref are required' });
+  if (!(await canSend(workspace))) return res.status(402).json({ error: 'subscription canceled' });
   await createReply(workspace, contact, text, client_ref, 'grader');
   res.status(202).json({ ok: true });
 });
@@ -60,4 +62,20 @@ grader.post('/__grader/claim', async (req, res) => {
   if ([contact, agent].some((v) => typeof v !== 'string' || !v)) return res.status(400).json({ error: 'contact and agent are required' });
   const r = await claim(workspace, contact, agent);
   res.status(r === 'taken' ? 409 : 200).json({ result: r });
+});
+
+grader.post('/__grader/billing/subscribe', async (req, res) => {
+  const { workspace, seats, token } = req.body ?? {};
+  if (!isWorkspace(workspace)) return res.status(404).json({ error: 'unknown workspace' });
+  if (!validSeats(seats) || typeof token !== 'string' || !token) return res.status(400).json({ error: 'seats and token are required' });
+  const r = await subscribeWorkspace(workspace, seats, token, 'grader');
+  res.status(r.code).json(r.body);
+});
+
+grader.post('/__grader/billing/seats', async (req, res) => {
+  const { workspace, seats } = req.body ?? {};
+  if (!isWorkspace(workspace)) return res.status(404).json({ error: 'unknown workspace' });
+  if (!validSeats(seats)) return res.status(400).json({ error: 'seats must be a whole number of 1 or more' });
+  const r = await changeSeats(workspace, seats);
+  res.status(r.code).json(r.body);
 });

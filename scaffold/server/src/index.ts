@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { ensureIndexes } from './db.js';
 import { getRedis } from './redis.js';
 import { webhook } from './routes/webhook.js';
+import { payboxWebhook } from './routes/paybox.js';
 import { grader } from './routes/grader.js';
 import { auth } from './routes/auth.js';
 import { api } from './routes/api.js';
@@ -19,6 +20,7 @@ app.get('/healthz', (_req, res) => {
 });
 
 app.use(webhook);
+app.use(payboxWebhook);
 app.use(grader);
 app.use(auth);
 app.use(api);
