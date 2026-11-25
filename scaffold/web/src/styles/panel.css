@@ -1,0 +1,29 @@
+.info { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-left: 1px solid var(--border); }
+.info-head { display: flex; align-items: center; justify-content: space-between; height: 56px; flex: none; padding: 0 var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: var(--space-4); height: 100%; }
+.tab { border: 0; border-bottom: 2px solid transparent; background: none; padding: 0; font: var(--text-sm); font-weight: 600; color: var(--text-muted); }
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--brand); }
+.info-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-4); }
+.info-body[hidden] { display: none; }
+
+.details { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3) var(--space-4); font: var(--text-sm); }
+.details dt { color: var(--text-muted); }
+.details dd { color: var(--text); overflow-wrap: anywhere; }
+
+.notes { display: grid; gap: var(--space-3); }
+.notes-explainer { display: flex; align-items: center; gap: 6px; font: var(--text-sm); color: var(--text-muted); }
+.notes-hint { font: var(--text-sm); color: var(--text-muted); }
+.notes-error { padding: var(--space-2) var(--space-3); border-radius: var(--radius-1); background: var(--danger-bg); color: var(--danger); font: var(--text-sm); }
+.notes-list { display: grid; gap: var(--space-2); }
+.note { padding: 10px var(--space-3); border: 1px solid var(--note-border); border-left: 3px solid var(--note-accent); border-radius: var(--radius-2); background: var(--note-bg); color: var(--note-text); }
+.note-text { font: var(--text-base); overflow-wrap: anywhere; white-space: pre-wrap; }
+.note-meta { display: flex; align-items: center; gap: 4px; margin-top: 4px; font: var(--text-xs); font-weight: 400; color: var(--note-text); opacity: .85; }
+.note.undecryptable { background: var(--danger-bg); border-color: var(--danger); border-left-color: var(--danger); color: var(--danger); }
+.note.undecryptable .note-meta { color: var(--danger); }
+.notes-compose { display: grid; gap: var(--space-2); justify-items: end; }
+.notes-compose textarea { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-2); resize: vertical; background: var(--surface); }
+.notes-compose textarea::placeholder { color: var(--text-muted); }
+
+@media (max-width: 1279px) {
+  .info { position: fixed; top: 0; right: 0; bottom: 0; z-index: 30; width: min(300px, 100%); box-shadow: var(--shadow-3); }
+}

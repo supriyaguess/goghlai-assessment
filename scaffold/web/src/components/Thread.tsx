@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ApiError, conversationPath, errorText, get, post } from '../api';
 import { useLatest } from '../useLatest';
-import { addMessage, setStatus } from '../messages';
+import { addMessage, layoutMessages, setStatus } from '../messages';
+import { dayLabel, formatPhone } from '../format';
+import { usePeopleNames } from '../people';
 import type { ConversationInfo, Frame, Me, Message, Subscribe } from '../types';
+import { InfoPanel } from './InfoPanel';
 import { MessageBubble } from './MessageBubble';
 import { ReplyBox } from './ReplyBox';
 import { ThreadHeader } from './ThreadHeader';
-import { Banner } from './Banner';
-import { NotesPanel } from './NotesPanel';
+import { useToast } from './Toasts';
+
+export type Panel = 'details' | 'notes';
 
 interface Props {
   me: Me;
@@ -16,6 +20,9 @@ interface Props {
   isAdmin: boolean;
   subscribe: Subscribe;
   epoch: number;
+  panel: Panel | null;
+  onPanel: (panel: Panel | null) => void;
+  onBack: () => void;
 }
 
 interface MessagePage {
@@ -26,14 +33,16 @@ interface MessagePage {
 
 const NEAR_BOTTOM = 80;
 
-export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Props) {
+export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch, panel, onPanel, onBack }: Props) {
   const [conversation, setConversation] = useState<ConversationInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [older, setOlder] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const toast = useToast();
+  const { nameOf, seen } = usePeopleNames();
+  const animate = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const heightBeforePrepend = useRef<number | null>(null);
@@ -56,7 +65,7 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
         setMessages(page.messages);
         setOlder(page.older);
       })
-      .catch((err) => !cancelled && setError(errorText(err)))
+      .catch((err) => !cancelled && toast.show(errorText(err), 'error'))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -70,15 +79,19 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
         setConversation(page.conversation);
         setMessages((current) => page.messages.reduce(addMessage, current));
       })
-      .catch((err) => setError(errorText(err)));
+      .catch((err) => toast.show(errorText(err), 'error'));
   }, [epoch]);
+
+  useEffect(() => {
+    if (!loading) animate.current = true;
+  }, [loading]);
 
   async function refreshConversation() {
     try {
       const page = await fetchPage();
       setConversation(page.conversation);
     } catch (err) {
-      setError(errorText(err));
+      toast.show(errorText(err), 'error');
     }
   }
 
@@ -93,7 +106,7 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
       });
       setOlder(page.older);
     } catch (err) {
-      setError(errorText(err));
+      toast.show(errorText(err), 'error');
     }
   }
 
@@ -116,6 +129,7 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
 
   const handleFrame = useLatest((frame: Frame) => {
     if (frame.contact !== contact) return;
+    if (frame.type === 'message.outbound') seen(frame.sender);
     switch (frame.type) {
       case 'message.inbound':
         setMessages((current) =>
@@ -148,10 +162,24 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
 
   useEffect(() => subscribe((frame) => handleFrame.current(frame)), [subscribe, handleFrame]);
 
-  async function send(text: string) {
-    const clientRef = crypto.randomUUID();
+  async function deliver(clientRef: string, text: string) {
     const body = { workspace, text, clientRef };
     const path = conversationPath(contact, '/reply');
+    try {
+      try {
+        await post(path, body);
+      } catch (err) {
+        if (err instanceof ApiError) throw err;
+        await post(path, body);
+      }
+    } catch {
+      setMessages((current) => setStatus(current, clientRef, 'failed'));
+      toast.show("Couldn't send. Check your connection.", 'error');
+    }
+  }
+
+  function send(text: string) {
+    const clientRef = crypto.randomUUID();
     stickToBottom.current = true;
     setMessages((current) =>
       addMessage(current, {
@@ -163,33 +191,30 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
         sender: me.sub,
       }),
     );
-    try {
-      try {
-        await post(path, body);
-      } catch (err) {
-        if (err instanceof ApiError) throw err;
-        await post(path, body);
-      }
-    } catch {
-      setMessages((current) => setStatus(current, clientRef, 'failed'));
-    }
+    deliver(clientRef, text);
+  }
+
+  function retry(failedId: string, text: string) {
+    setMessages((current) => current.filter((m) => !(m.direction === 'out' && m.id === failedId)));
+    send(text);
   }
 
   async function act(action: 'claim' | 'release' | 'close' | 'reopen') {
     setBusy(true);
-    setError(null);
     try {
       await post(conversationPath(contact, `/${action}`), { workspace });
+      if (action === 'close') toast.show('Conversation closed.');
+      if (action === 'reopen') toast.show('Conversation reopened.');
       if (action === 'claim') setConversation((c) => ({ contact, status: 'open', ...c, assignee: me.sub }));
       if (action === 'release') setConversation((c) => ({ contact, status: 'open', ...c, assignee: null }));
       if (action === 'close') setConversation((c) => ({ contact, assignee: null, ...c, status: 'closed' }));
       if (action === 'reopen') setConversation((c) => ({ contact, assignee: null, ...c, status: 'open' }));
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setError(action === 'claim' ? 'This conversation is already claimed by someone else.' : 'Someone else changed this conversation.');
+        toast.show(action === 'claim' ? 'Someone else claimed this first.' : 'Someone else changed this conversation.', 'error');
         await refreshConversation();
       } else {
-        setError(errorText(err));
+        toast.show(errorText(err), 'error');
       }
     } finally {
       setBusy(false);
@@ -197,36 +222,79 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
   }
 
   const closed = conversation?.status === 'closed';
+  const holder = conversation?.assignee ?? null;
+  const heldByOther = holder !== null && holder !== me.sub;
+  const rows = layoutMessages(messages);
+
+  function composer() {
+    if (closed) {
+      return (
+        <div className="closed-bar">
+          <span>Closed. Reopen to reply.</span>
+          <button className="btn btn-primary" onClick={() => act('reopen')} disabled={busy} title={busy ? 'Please wait for the last action to finish' : undefined}>
+            Reopen
+          </button>
+        </div>
+      );
+    }
+    return (
+      <ReplyBox
+        onSend={send}
+        disabledReason={heldByOther ? `${nameOf(holder)} is handling this. Claim it to reply.` : undefined}
+      />
+    );
+  }
 
   return (
-    <section className="thread" aria-label={`Conversation with ${contact}`}>
-      <ThreadHeader
-        contact={contact}
-        conversation={conversation}
-        meSub={me.sub}
-        isAdmin={isAdmin}
-        busy={busy}
-        onClaim={() => act('claim')}
-        onRelease={() => act('release')}
-        onToggleStatus={() => act(closed ? 'reopen' : 'close')}
-      />
-      {error && <Banner>{error}</Banner>}
-      <NotesPanel meSub={me.sub} workspace={workspace} contact={contact} subscribe={subscribe} />
-      <div className="messages" ref={scroller} onScroll={onScroll}>
-        {older && <button className="load-more" onClick={loadEarlier}>Load earlier</button>}
-        {loading ? (
-          <p className="empty" role="status">Loading...</p>
-        ) : messages.length === 0 ? (
-          <p className="empty">No messages yet.</p>
-        ) : (
-          <ul className="bubbles">
-            {messages.map((m) => (
-              <MessageBubble key={`${m.direction}:${m.id}`} message={m} />
-            ))}
-          </ul>
-        )}
-      </div>
-      <ReplyBox onSend={send} />
-    </section>
+    <>
+      <main className="thread" id="thread" tabIndex={-1} aria-label={`Conversation with ${formatPhone(contact)}`}>
+        <ThreadHeader
+          contact={contact}
+          conversation={conversation}
+          meSub={me.sub}
+          isAdmin={isAdmin}
+          busy={busy}
+          panel={panel}
+          onPanel={onPanel}
+          onBack={onBack}
+          onClaim={() => act('claim')}
+          onRelease={() => act('release')}
+          onToggleStatus={() => act(closed ? 'reopen' : 'close')}
+        />
+        <div className="messages" ref={scroller} onScroll={onScroll}>
+          {older && <button className="btn btn-secondary load-earlier" onClick={loadEarlier}>Load earlier</button>}
+          {loading ? (
+            <p className="empty" role="status">Loading messages...</p>
+          ) : messages.length === 0 ? (
+            <p className="empty">No messages yet.</p>
+          ) : (
+            <ul className="bubbles">
+              {rows.map((row) => (
+                <Fragment key={`${row.message.direction}:${row.message.id}`}>
+                  {row.newDay && (
+                    <li className="day"><span>{dayLabel(row.message.at)}</span></li>
+                  )}
+                  <MessageBubble row={row} animate={animate.current} onRetry={retry} />
+                </Fragment>
+              ))}
+            </ul>
+          )}
+        </div>
+        {composer()}
+      </main>
+      {panel && (
+        <InfoPanel
+          panel={panel}
+          onPanel={onPanel}
+          meSub={me.sub}
+          workspace={workspace}
+          contact={contact}
+          conversation={conversation}
+          messages={messages}
+          hasEarlier={older !== null}
+          subscribe={subscribe}
+        />
+      )}
+    </>
   );
 }

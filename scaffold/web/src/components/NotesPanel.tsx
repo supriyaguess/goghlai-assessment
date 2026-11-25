@@ -13,8 +13,11 @@ import {
 } from '../keyring';
 import type { Frame, NoteRecord, Subscribe } from '../types';
 import { relativeTime } from '../format';
+import { usePeopleNames } from '../people';
+import { LockIcon } from './icons';
 
 interface Props {
+  active: boolean;
   meSub: string;
   workspace: string;
   contact: string;
@@ -30,9 +33,9 @@ interface Note {
 
 type Phase = 'loading' | 'waiting' | 'ready';
 
-export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
+export function NotesPanel({ active, meSub, workspace, contact, subscribe }: Props) {
   const supported = keyringSupported();
-  const [open, setOpen] = useState(false);
+  const { nameOf, seen } = usePeopleNames();
   const [phase, setPhase] = useState<Phase>('loading');
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState('');
@@ -85,7 +88,7 @@ export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
   }, [meSub, workspace, loadNotes]);
 
   useEffect(() => {
-    if (!open || !supported) return;
+    if (!active || !supported) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function tick() {
@@ -102,7 +105,11 @@ export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [open, supported, sync]);
+  }, [active, supported, sync]);
+
+  useEffect(() => {
+    notes.forEach((n) => seen(n.author));
+  }, [notes, seen]);
 
   const handleFrame = useLatest((frame: Frame) => {
     if (frame.type !== 'note.added' || frame.contact !== contact || !workspaceKey.current) return;
@@ -138,14 +145,15 @@ export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
     return (
       <>
         {notes.length === 0 ? (
-          <p className="notes-hint">No notes yet.</p>
+          <p className="notes-hint">No notes yet. Add context only your team can see.</p>
         ) : (
           <ul className="notes-list">
             {notes.map((n) => (
               <li key={n.id} className={n.text === null ? 'note undecryptable' : 'note'}>
-                <p className="note-text">{n.text ?? 'Could not decrypt this note'}</p>
+                <p className="note-text">{n.text ?? "Can't decrypt this note on this device."}</p>
                 <div className="note-meta">
-                  {n.author === meSub ? 'You' : n.author} · {relativeTime(n.at)}
+                  <LockIcon size={12} />
+                  {n.author === meSub ? 'You' : nameOf(n.author)} · {relativeTime(n.at)}
                 </div>
               </li>
             ))}
@@ -161,10 +169,17 @@ export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
           <textarea
             aria-label="New private note"
             value={draft}
+            rows={3}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Write a private note"
+            placeholder="Only your team sees this"
           />
-          <button className="primary" disabled={busy || !draft.trim()}>Add note</button>
+          <button
+            className="btn btn-secondary"
+            disabled={busy || !draft.trim()}
+            title={busy ? 'Saving the note' : !draft.trim() ? 'Write a note first' : undefined}
+          >
+            Add note
+          </button>
         </form>
       </>
     );
@@ -172,16 +187,9 @@ export function NotesPanel({ meSub, workspace, contact, subscribe }: Props) {
 
   return (
     <section className="notes" aria-label="Private notes">
-      <button className="notes-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        Private notes {open ? '(hide)' : '(show)'}
-      </button>
-      {open && (
-        <>
-          <p className="notes-hint">End-to-end encrypted. Only agents in this workspace can read these notes, not the server.</p>
-          {error && <p className="notes-hint" role="alert">{error}</p>}
-          {body()}
-        </>
-      )}
+      <p className="notes-explainer"><LockIcon size={14} /> Encrypted. Only your team can read these.</p>
+      {error && <p className="notes-error" role="alert">{error}</p>}
+      {body()}
     </section>
   );
 }

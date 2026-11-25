@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { ApiError, get, post } from './api';
 import type { Me } from './types';
 import { SignIn } from './components/SignIn';
-import { TopBar } from './components/TopBar';
+import { ToastProvider } from './components/Toasts';
 import { Workspace } from './components/Workspace';
-import { Banner } from './components/Banner';
 
 const STORAGE_KEY = 'switchboard.workspace';
 
@@ -47,8 +46,8 @@ export function App() {
   if (session.state === 'error') {
     return (
       <main className="centered">
-        <Banner>Could not reach the server.</Banner>
-        <button onClick={() => location.reload()}>Try again</button>
+        <p>Could not reach the server.</p>
+        <button className="btn btn-secondary" onClick={() => location.reload()}>Try again</button>
       </main>
     );
   }
@@ -57,13 +56,23 @@ export function App() {
   const current = me.workspaces.find((w) => w.id === workspace);
 
   return (
-    <div className="app">
-      <TopBar me={me} workspace={workspace} onWorkspace={chooseWorkspace} onSignOut={signOut} />
+    <ToastProvider>
       {current ? (
-        <Workspace key={current.id} me={me} workspace={current.id} isAdmin={current.role === 'admin'} />
+        <Workspace
+          key={current.id}
+          me={me}
+          workspaces={me.workspaces}
+          workspace={current.id}
+          isAdmin={current.role === 'admin'}
+          onWorkspace={chooseWorkspace}
+          onSignOut={signOut}
+        />
       ) : (
-        <p className="empty">Your account is not a member of any workspace.</p>
+        <main className="centered">
+          <p>Your account is not a member of any workspace.</p>
+          <button className="btn btn-secondary" onClick={signOut}>Sign out</button>
+        </main>
       )}
-    </div>
+    </ToastProvider>
   );
 }

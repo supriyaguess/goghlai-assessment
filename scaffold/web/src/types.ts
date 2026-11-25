@@ -15,6 +15,7 @@ export interface ConversationSummary {
   status: ConversationStatus;
   lastActivityAt: string;
   preview: string;
+  lastOut?: boolean;
 }
 
 export interface ConversationInfo {
