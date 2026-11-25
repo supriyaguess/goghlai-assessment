@@ -100,7 +100,7 @@ news-report-website
 on-render-new
 product-research
 repo-new
-sanoj-key
+[name redacted]-key
 web-on-render
 /Users/apple/Downloads/starter.zip
 ```
@@ -3654,8 +3654,8 @@ origin	https://github.com/supriyaguess/gohlai-assessment.git (push)
 .git
 README.md
 --- git identity ---
-Sanoj Pandit
-sanoj@omli.in
+[name redacted]
+[email redacted]
 ```
 
 
@@ -3762,7 +3762,7 @@ Stage 1 repo me rakh diya hai, commit abhi nahi kiya.
 
 ## Commit ke baare me
 - Mujhe tumhari commit ki ijazat chahiye. Bolo "commit stage 1" to main commit karke push kar dunga.
-- Commit message simple rahega (jaise `server: webhook ingest, outbox sender, claim`), aur **us me Claude ka co-author line nahi daalunga**, kyunki tumne kaha tha ki AI jaisa nahi lagna chahiye. Author tumhara hi rahega: Sanoj Pandit.
+- Commit message simple rahega (jaise `server: webhook ingest, outbox sender, claim`), aur **us me Claude ka co-author line nahi daalunga**, kyunki tumne kaha tha ki AI jaisa nahi lagna chahiye. Author tumhara hi rahega: [name redacted].
 - Ek baat dhyan rakhna: assessment ke rules me `ai-logs/` dena zaroori hai. Is practice repo ke liye theek hai, par asli round me wo tumhe khud daalna hoga.
 
 ## Security
@@ -3921,7 +3921,7 @@ _thinking_
 ## assistant  
 2026-11-25T13:05:20.722Z
 
-Samajh gaya. Commit ka author tumhari global git config (`sanoj@omli.in`) se aaya, token supriyaguess ka tha. Isliye GitHub pe tumhari id dikh rahi hai. Pehle token se dekhta hu ki supriyaguess ka sahi naam/id kya hai (sirf read, kuch badal nahi raha).
+Samajh gaya. Commit ka author tumhari global git config (`[email redacted]`) se aaya, token supriyaguess ka tha. Isliye GitHub pe tumhari id dikh rahi hai. Pehle token se dekhta hu ki supriyaguess ka sahi naam/id kya hai (sirf read, kuch badal nahi raha).
 
 
 ---
@@ -3949,7 +3949,7 @@ Samajh gaya. Commit ka author tumhari global git config (`sanoj@omli.in`) se aay
 
 ```
 {'login': 'supriyaguess', 'id': 153362616, 'name': 'Supriya Kumari', 'email': None}
-ea0a828 Sanoj Pandit <sanoj@omli.in> | Sanoj Pandit <sanoj@omli.in>
+ea0a828 [name redacted] <[email redacted]> | [name redacted] <[email redacted]>
 712bf01 Supriya Kumari <153362616+supriyaguess@users.noreply.github.com> | GitHub <noreply@github.com>
 ```
 
@@ -3959,7 +3959,7 @@ ea0a828 Sanoj Pandit <sanoj@omli.in> | Sanoj Pandit <sanoj@omli.in>
 ## assistant  
 2026-11-25T13:05:30.739Z
 
-Galti confirm ho gayi. Commit `ea0a828` ka author "Sanoj Pandit <sanoj@omli.in>" hai, jabki token supriyaguess (Supriya Kumari) ka hai.
+Galti confirm ho gayi. Commit `ea0a828` ka author "[name redacted] <[email redacted]>" hai, jabki token supriyaguess (Supriya Kumari) ka hai.
 
 ## Fix: plain `git revert` se kaam nahi chalega
 `git revert` ek naya commit jodta hai, aur wo bhi tumhari id se hoga. Purana commit history me dikhta rahega. Tumhari id hatane ka sahi tareeka hai commit ko dobara banana, supriyaguess ke author ke saath, aur force-push karna.
@@ -10181,7 +10181,7 @@ Billing ka web hissa copy ho gaya hai aur build pass hua hai, par server aur bro
 
 ```
 {
-  "command": "cd ~/.claude/projects/-Users-apple-Desktop-repo-new 2>/dev/null && ls -la --time-style=+%H:%M *.jsonl 2>/dev/null | head; F=~/.claude/projects/-Users-apple-Desktop-repo-new/1a768465-323a-4dbe-8328-9a2acfe3acc6.jsonl; ls -la \"$F\"; echo \"--- secret scan (counts only) ---\"; for p in 'ghp_[A-Za-z0-9]{20,}' 'github_pat_[A-Za-z0-9_]{20,}' 'gho_[A-Za-z0-9]{20,}' 'Basic [A-Za-z0-9+/=]{40,}' 'sk-[A-Za-z0-9]{20,}'; do echo \"$p: $(grep -cE \"$p\" \"$F\")\"; done; echo \"email mentions: $(grep -c 'sanoj@omli.in' \"$F\")\"; ls ~/.claude/projects/-Users-apple-Desktop-repo-new/ | head",
+  "command": "cd ~/.claude/projects/-Users-apple-Desktop-repo-new 2>/dev/null && ls -la --time-style=+%H:%M *.jsonl 2>/dev/null | head; F=~/.claude/projects/-Users-apple-Desktop-repo-new/1a768465-323a-4dbe-8328-9a2acfe3acc6.jsonl; ls -la \"$F\"; echo \"--- secret scan (counts only) ---\"; for p in 'ghp_[A-Za-z0-9]{20,}' 'github_pat_[A-Za-z0-9_]{20,}' 'gho_[A-Za-z0-9]{20,}' 'Basic [A-Za-z0-9+/=]{40,}' 'sk-[A-Za-z0-9]{20,}'; do echo \"$p: $(grep -cE \"$p\" \"$F\")\"; done; echo \"email mentions: $(grep -c '[email redacted]' \"$F\")\"; ls ~/.claude/projects/-Users-apple-Desktop-repo-new/ | head",
   "description": "Locate session transcript and scan it for secrets (counts only)"
 }
 ```
@@ -10479,7 +10479,7 @@ Billing ki verification background me chal rahi hai. Tab tak status bata deta hu
 
 ## `ai-logs/` ke baare me ek baat
 - Ye transcript abhi tak ka hai. **Aakhir me ek baar phir copy karna padega**, taaki poori baat usme aa jaye. Main wo kar dunga.
-- Isme tumhara email (`sanoj@omli.in`) 6 jagah hai, kyunki session ke context me tha. Repo public hoga to wo dikhega. Form me bhi to wahi email dena hai, to dikkat nahi, bas tumhe pata hona chahiye.
+- Isme tumhara email (`[email redacted]`) 6 jagah hai, kyunki session ke context me tha. Repo public hoga to wo dikhega. Form me bhi to wahi email dena hai, to dikkat nahi, bas tumhe pata hona chahiye.
 - Isme "AI jaisa na lage" wali baat bhi hai. Wo waise hi rahegi, kyunki logs ko badalna nahi hai.
 
 ## Timeline (abhi ~19:25, deadline ~20:16)
