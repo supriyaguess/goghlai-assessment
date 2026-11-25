@@ -7,6 +7,7 @@ import { MessageBubble } from './MessageBubble';
 import { ReplyBox } from './ReplyBox';
 import { ThreadHeader } from './ThreadHeader';
 import { Banner } from './Banner';
+import { NotesPanel } from './NotesPanel';
 
 interface Props {
   me: Me;
@@ -210,6 +211,7 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch }: Pr
         onToggleStatus={() => act(closed ? 'reopen' : 'close')}
       />
       {error && <Banner>{error}</Banner>}
+      <NotesPanel meSub={me.sub} workspace={workspace} contact={contact} subscribe={subscribe} />
       <div className="messages" ref={scroller} onScroll={onScroll}>
         {older && <button className="load-more" onClick={loadEarlier}>Load earlier</button>}
         {loading ? (

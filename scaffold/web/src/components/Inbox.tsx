@@ -153,6 +153,7 @@ function applyFrame(
     case 'message.outbound':
       return moveToTop(list, index, { preview: frame.text, lastActivityAt: new Date().toISOString() });
     case 'message.status':
+    case 'note.added':
       return list;
     case 'conversation.assigned': {
       if (filter === 'mine' && frame.assignee !== meSub) return list.filter((_, i) => i !== index);
