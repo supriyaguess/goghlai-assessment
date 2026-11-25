@@ -5,8 +5,10 @@ import { cols } from '../db.js';
 import { roleIn, sessionFromCookie, type Session } from '../lib/session.js';
 import { claim, release, setStatus } from '../lib/conversations.js';
 import { createReply } from '../lib/outbox.js';
+import { notes } from './notes.js';
 
 export const api = Router();
+
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -36,6 +38,8 @@ api.use('/api', async (req, res, next) => {
     next(e);
   }
 });
+
+api.use(notes);
 
 api.get('/api/me', (req, res) => {
   const s = req.session!;

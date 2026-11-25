@@ -47,6 +47,25 @@ export type FrameDoc = {
   createdAt: Date;
 };
 
+export type Note = {
+  ws: string;
+  contact: string;
+  author: string;
+  ciphertext: string;
+  iv: string;
+  createdAt: Date;
+};
+
+export type KeyDoc = {
+  ws: string;
+  sub: string;
+  publicKey: string;
+  wrappedKey?: string;
+  wrappedBy?: string;
+};
+
+export type Keyring = { ws: string; creator: string; createdAt: Date };
+
 let connecting: Promise<Db> | undefined;
 
 export function getDb(): Promise<Db> {
@@ -61,6 +80,9 @@ export async function cols() {
     convs: d.collection<Conv>('conversations'),
     outbox: d.collection<Out>('outbox'),
     frames: d.collection<FrameDoc>('frames'),
+    notes: d.collection<Note>('notes'),
+    keys: d.collection<KeyDoc>('keys'),
+    keyring: d.collection<Keyring>('keyring'),
   };
 }
 
@@ -78,6 +100,9 @@ export async function ensureIndexes() {
     c.outbox.createIndex({ ws: 1, contact: 1, createdAt: 1 }),
     c.frames.createIndex({ ws: 1, seq: 1 }, { unique: true }),
     c.frames.createIndex({ ws: 1, key: 1 }, { unique: true }),
+    c.notes.createIndex({ ws: 1, contact: 1, createdAt: 1 }),
+    c.keys.createIndex({ ws: 1, sub: 1 }, { unique: true }),
+    c.keyring.createIndex({ ws: 1 }, { unique: true }),
   ]);
 }
 
