@@ -9,6 +9,8 @@ import { isWorkspace } from '../config.js';
 // Keys are made and used in the browser; see PROTOCOL.md.
 export const notes = Router();
 
+export const validContact = (v: unknown): v is string => typeof v === 'string' && /^\+?[0-9A-Za-z._:-]{3,40}$/.test(v);
+
 const MAX_B64 = 16_384;
 const b64 = (v: unknown, max = MAX_B64): v is string =>
   typeof v === 'string' && v.length > 0 && v.length <= max && /^[A-Za-z0-9+/_-]+={0,2}$/.test(v);
@@ -60,8 +62,10 @@ notes.post('/api/workspaces/:ws/keyring', async (req, res) => {
   try {
     await keyring.insertOne({ ws, creator: me.sub, createdAt: new Date() });
   } catch (e) {
-    if (isDup(e)) return res.status(409).json({ error: 'workspace key already exists' });
-    throw e;
+    if (!isDup(e)) throw e;
+    // a creator whose first attempt died before storing its key may finish the job
+    const ring = await keyring.findOne({ ws });
+    if (ring?.creator !== me.sub || me.wrappedKey) return res.status(409).json({ error: 'workspace key already exists' });
   }
   await keys.updateOne({ ws, sub: me.sub }, { $set: { wrappedKey: req.body.wrappedKey, wrappedBy: me.sub } });
   res.status(201).json({ ok: true });
@@ -86,6 +90,7 @@ notes.put('/api/workspaces/:ws/keys/:sub', async (req, res) => {
 notes.post('/api/conversations/:contact/notes', async (req, res) => {
   const ws = workspaceOf(req, res);
   if (!ws) return;
+  if (!validContact(req.params.contact)) return res.status(400).json({ error: 'invalid contact' });
   if (!b64(req.body?.ciphertext) || !b64(req.body?.iv, 64)) return res.status(400).json({ error: 'ciphertext and iv required' });
   const { notes: col } = await cols();
   const doc = {

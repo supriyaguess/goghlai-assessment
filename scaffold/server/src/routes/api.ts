@@ -1,11 +1,12 @@
 import { Router, json, type Request, type Response, type NextFunction } from 'express';
 import { randomUUID } from 'node:crypto';
+import { ObjectId } from 'mongodb';
 import { config, isWorkspace } from '../config.js';
 import { cols } from '../db.js';
 import { roleIn, sessionFromCookie, type Session } from '../lib/session.js';
 import { claim, release, setStatus } from '../lib/conversations.js';
 import { createReply } from '../lib/outbox.js';
-import { notes } from './notes.js';
+import { notes, validContact } from './notes.js';
 
 export const api = Router();
 
@@ -63,6 +64,17 @@ function member(req: Request, res: Response): { ws: string; role: 'admin' | 'age
 
 const pageSize = (v: unknown) => Math.min(Math.max(Number(v) || 30, 1), 100);
 
+// display names for the people in a workspace, so the UI can show "Ben Ortiz" instead of an id
+api.get('/api/workspaces/:ws/people', async (req, res) => {
+  const ws = req.params.ws;
+  if (!isWorkspace(ws) || !roleIn(req.session!, ws)) return res.status(403).json({ error: 'not a member of this workspace' });
+  const { people } = await cols();
+  const me = req.session!;
+  const list = (await people.find({ ws }).toArray()).map((p) => ({ sub: p.sub, name: p.name }));
+  if (!list.some((p) => p.sub === me.sub)) list.push({ sub: me.sub, name: me.name || me.email || me.sub });
+  res.json({ people: list });
+});
+
 api.get('/api/conversations', async (req, res) => {
   const m = member(req, res);
   if (!m) return;
@@ -73,9 +85,9 @@ api.get('/api/conversations', async (req, res) => {
 
   const limit = pageSize(req.query.limit);
   const before = typeof req.query.before === 'string' ? req.query.before.split('_') : null;
-  if (before && before.length === 2 && !Number.isNaN(Number(before[0]))) {
+  if (before && before.length === 2 && !Number.isNaN(Number(before[0])) && ObjectId.isValid(before[1])) {
     const t = new Date(Number(before[0]));
-    filter.$or = [{ lastActivityAt: { $lt: t } }, { lastActivityAt: t, _id: { $lt: before[1] } }];
+    filter.$or = [{ lastActivityAt: { $lt: t } }, { lastActivityAt: t, _id: { $lt: new ObjectId(before[1]) } }];
   }
   const rows = await convs.find(filter as any).sort({ lastActivityAt: -1, _id: -1 }).limit(limit + 1).toArray();
   const page = rows.slice(0, limit);
@@ -128,6 +140,7 @@ api.get('/api/conversations/:contact/messages', async (req, res) => {
 api.post('/api/conversations/:contact/reply', async (req, res) => {
   const m = member(req, res);
   if (!m) return;
+  if (!validContact(req.params.contact)) return res.status(400).json({ error: 'invalid contact' });
   const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > 4000) return res.status(400).json({ error: 'text required (max 4000 chars)' });
   const ref = typeof req.body?.clientRef === 'string' && req.body.clientRef.length <= 80 ? req.body.clientRef : randomUUID();
@@ -138,6 +151,7 @@ api.post('/api/conversations/:contact/reply', async (req, res) => {
 api.post('/api/conversations/:contact/claim', async (req, res) => {
   const m = member(req, res);
   if (!m) return;
+  if (!validContact(req.params.contact)) return res.status(400).json({ error: 'invalid contact' });
   const r = await claim(m.ws, req.params.contact, req.session!.sub);
   res.status(r === 'taken' ? 409 : 200).json({ result: r });
 });

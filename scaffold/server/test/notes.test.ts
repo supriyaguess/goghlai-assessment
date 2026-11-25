@@ -87,3 +87,22 @@ test('rejects junk instead of storing it', async () => {
   assert.equal((await call('u_ben', 'POST', '/api/conversations/%2B14155550101/notes', { workspace: 'ws_acme', ciphertext: '<script>', iv: 'abc' })).status, 400);
   assert.equal((await call('u_ben', 'POST', '/api/conversations/%2B14155550101/notes', { workspace: 'ws_acme', ciphertext: 'a'.repeat(20_000), iv: 'abc' })).status, 400);
 });
+
+test('a creator whose key setup died half way can finish it, nobody else can', async () => {
+  const { keys, keyring } = await cols();
+  await keys.deleteMany({ ws: 'ws_acme' });
+  await keyring.deleteMany({ ws: 'ws_acme' });
+  await call('u_eli', 'PUT', '/api/keys', { workspace: 'ws_acme', publicKey: pub('E') });
+  await call('u_ben', 'PUT', '/api/keys', { workspace: 'ws_acme', publicKey: pub('B') });
+  await keyring.insertOne({ ws: 'ws_acme', creator: 'u_eli', createdAt: new Date() });
+
+  assert.equal((await call('u_ben', 'POST', '/api/workspaces/ws_acme/keyring', { wrappedKey: wrapped('b') })).status, 409);
+  assert.equal((await call('u_eli', 'POST', '/api/workspaces/ws_acme/keyring', { wrappedKey: wrapped('e') })).status, 201);
+  assert.equal((await call('u_eli', 'POST', '/api/workspaces/ws_acme/keyring', { wrappedKey: wrapped('e2') })).status, 409);
+});
+
+test('a contact id with a strange shape is refused', async () => {
+  const note = { workspace: 'ws_acme', ciphertext: 'c2VjcmV0', iv: 'aXZpdml2aXZpdg' };
+  assert.equal((await call('u_ben', 'POST', '/api/conversations/' + encodeURIComponent('<b>x</b>') + '/notes', note)).status, 400);
+  assert.equal((await call('u_ben', 'POST', '/api/conversations/' + 'a'.repeat(100) + '/notes', note)).status, 400);
+});

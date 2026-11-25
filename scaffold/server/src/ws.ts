@@ -55,13 +55,16 @@ export function attachWebSocket(server: Server) {
     try {
       const url = new URL(req.url ?? '', 'http://x');
       if (url.pathname !== '/ws') return reject(socket, '404 Not Found');
+      const origin = req.headers.origin;
+      if (origin && origin !== config.webOrigin && origin !== `http://${req.headers.host}`) return reject(socket, '403 Forbidden');
       const session = await sessionFromCookie(req.headers.cookie);
       if (!session) return reject(socket, '401 Unauthorized');
       const ws = url.searchParams.get('workspace');
       if (!isWorkspace(ws) || !roleIn(session, ws)) return reject(socket, '403 Forbidden');
 
       const afterParam = url.searchParams.get('after');
-      const after = afterParam !== null && /^\d+$/.test(afterParam) ? Number(afterParam) : await lastSeq(ws);
+      const newest = await lastSeq(ws);
+      const after = afterParam !== null && /^\d+$/.test(afterParam) ? Math.min(Number(afterParam), newest) : newest;
 
       wss.handleUpgrade(req, socket, head, (socket) => {
         const client: Client = { socket, ws, sent: after, busy: false, again: false };

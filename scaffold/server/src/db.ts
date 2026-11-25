@@ -64,6 +64,8 @@ export type KeyDoc = {
   wrappedBy?: string;
 };
 
+export type Person = { ws: string; sub: string; name: string; email?: string };
+
 export type Keyring = { ws: string; creator: string; createdAt: Date };
 
 let connecting: Promise<Db> | undefined;
@@ -83,6 +85,7 @@ export async function cols() {
     notes: d.collection<Note>('notes'),
     keys: d.collection<KeyDoc>('keys'),
     keyring: d.collection<Keyring>('keyring'),
+    people: d.collection<Person>('people'),
   };
 }
 
@@ -103,6 +106,7 @@ export async function ensureIndexes() {
     c.notes.createIndex({ ws: 1, contact: 1, createdAt: 1 }),
     c.keys.createIndex({ ws: 1, sub: 1 }, { unique: true }),
     c.keyring.createIndex({ ws: 1 }, { unique: true }),
+    c.people.createIndex({ ws: 1, sub: 1 }, { unique: true }),
   ]);
 }
 

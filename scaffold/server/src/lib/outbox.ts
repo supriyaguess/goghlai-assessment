@@ -82,7 +82,8 @@ async function attempt(doc: WithId<Out>) {
     await pause(doc.ws, 1000);
     return retryLater();
   }
-  // 4xx other than 429 will not get better by trying again
+  // other 4xx is probably final, but give a transient auth or conflict error a few tries
+  if (doc.attempts < 5) return retryLater();
   await addFrame(doc.ws, `st:${doc.clientRef}:failed`, { type: 'message.status', contact: doc.contact, client_ref: doc.clientRef, status: 'failed' });
   await outbox.updateOne(
     { _id: doc._id, rank: { $lt: RANK.failed } },
