@@ -61,9 +61,9 @@ shows its status as it goes: queued, sent, delivered (or failed).
 
 ![Claim and reply](docs/screenshots/05-claim-and-reply.png)
 
-**6. Leave a private note.** Open "Private notes" and add one. Notes are
-encrypted in the browser, so the server stores text it cannot read. See
-`PROTOCOL.md`.
+**6. Leave a private note.** Click the lock icon in the conversation header to
+open the side panel and add a note. Notes are encrypted in the browser, so the
+server stores text it cannot read. See `PROTOCOL.md`.
 
 ![Private note](docs/screenshots/06-private-note.png)
 
@@ -78,13 +78,23 @@ message from the customer reopens them.
 
 ![Closed tab](docs/screenshots/08-closed-tab.png)
 
+**9. Conversation details.** The info icon opens a panel with the number, owner,
+status and how many messages there are.
+
+![Details panel](docs/screenshots/09-details-panel.png)
+
+**10. On a phone.** Below 640 px the list and the conversation take turns on the
+screen, with a Back button.
+
+![Mobile list](docs/screenshots/10-mobile-list.png) ![Mobile conversation](docs/screenshots/11-mobile-thread.png)
+
 ## Check and tests
 
 ```
 npm run check               # level 1, about 90 s
 npm run check:full          # levels 1, 2, 3 and 5, about 4 min, writes CHECK_REPORT.json
 npm run check -- --levels 5
-npm --prefix scaffold/server test    # unit and integration tests (needs MongoDB and Redis)
+npm --prefix scaffold/server test    # 41 unit and integration tests (needs MongoDB and Redis)
 ```
 
 The check starts the server itself (see `switchboard.json`), so stop your dev

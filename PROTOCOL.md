@@ -16,7 +16,7 @@ The server never sees a private key, K, or note plaintext.
 
 ## Flows
 
-**Join.** On first opening the notes panel, the browser generates an ECDH keypair, stores the private key, and registers the public key (`PUT /api/keys`). Registration happens only when no local keypair exists, because replacing a key invalidates the K that was wrapped for the old one. The first registration for a user/workspace wins.
+**Join.** On first opening the notes panel, the browser generates an ECDH keypair, stores the private key, and registers the public key (`PUT /api/keys`; registering again replaces it and drops the key that was wrapped for the old one, which is also how a lost profile is recovered). Registration happens only when no local keypair exists, because replacing a key invalidates the K that was wrapped for the old one. The first registration for a user/workspace wins.
 
 **First-member bootstrap.** If the workspace is not initialised and I have no wrapped key, I generate K, wrap it for my own public key (wrappedBy = me) and `POST .../keyring`. A 409 means someone else got there first; I reload state.
 
@@ -34,7 +34,7 @@ Can: see all metadata, delete or withhold notes, replay or duplicate notes, refu
 
 ## Attacks this scheme does NOT stop
 
-1. **Public key substitution by the server.** Public keys are trusted as the server reports them; there is no out-of-band fingerprint or safety-number check. A malicious or compromised server can register a fake member with a key it controls, or replace a pending member's public key. A holder of K then wraps K for that key, and the server unwraps it and reads all notes from then on plus every existing note it holds. A member's own public key can be replaced by that member at any time, so a planted key is only noticed if someone compares keys outside the app, which this design does not ask anyone to do. An existing holder is only ever fooled this way: by the server handing over a substituted key.
+1. **Public key substitution by the server.** Public keys are trusted as the server reports them; there is no out-of-band fingerprint or safety-number check. A malicious or compromised server can register a fake member with a key it controls, or replace a pending member's public key. A holder of K then wraps K for that key, and the server unwraps it and reads all notes from then on plus every existing note it holds. A member's own public key can be replaced by that member at any time, so a planted key is only noticed if someone compares keys outside the app, which this design does not ask anyone to do. The same trick works on a joiner: the server can answer a new member's key request with a workspace key it made up, wrapped by a key it controls, and the joiner has no way to tell it is not the real K, so that member's notes are readable by the server. An existing holder is only ever fooled this way: by the server handing over a substituted key.
 
 2. **No forward secrecy, rotation or revocation.** K never changes. Someone removed from the workspace keeps K and any ciphertext they copied, and can read everything written under K, including future notes if they can still obtain ciphertext. A new member given K reads all old notes. A leaked device key or K compromises all notes, past and future.
 
