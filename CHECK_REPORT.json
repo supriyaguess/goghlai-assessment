@@ -1,13 +1,13 @@
 {
   "profile": "full",
-  "startedAt": "2026-11-25T14:12:47.963Z",
+  "startedAt": "2026-11-25T14:23:51.937Z",
   "checks": [
     {
       "level": 1,
       "id": "inbound_complete",
       "max": 4,
       "got": 4,
-      "detail": "175 of 175 genuine messages stored"
+      "detail": "177 of 177 genuine messages stored"
     },
     {
       "level": 1,
@@ -49,7 +49,7 @@
       "id": "ack_speed",
       "max": 1,
       "got": 1,
-      "detail": "p95 acknowledgement 17 ms, 0 first attempts not acknowledged"
+      "detail": "p95 acknowledgement 28 ms, 0 first attempts not acknowledged"
     },
     {
       "level": 1,
@@ -91,7 +91,7 @@
       "id": "crash_inbound_complete",
       "max": 3,
       "got": 3,
-      "detail": "killed at 8 s, down 4 s: 175 of 175 genuine messages stored"
+      "detail": "killed at 11 s, down 4 s: 174 of 174 genuine messages stored"
     },
     {
       "level": 2,
@@ -133,7 +133,7 @@
       "id": "multi_inbound_complete",
       "max": 2,
       "got": 2,
-      "detail": "171 of 171 genuine messages stored"
+      "detail": "173 of 173 genuine messages stored"
     },
     {
       "level": 3,
@@ -247,5 +247,5 @@
       "max": 15
     }
   },
-  "finishedAt": "2026-11-25T14:16:14.919Z"
+  "finishedAt": "2026-11-25T14:27:17.511Z"
 }

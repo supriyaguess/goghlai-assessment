@@ -90,13 +90,20 @@ screen, with a Back button.
 
 ![Mobile list](docs/screenshots/10-mobile-list.png) ![Mobile conversation](docs/screenshots/11-mobile-thread.png)
 
+**11. Billing (admins only).** Admins see a Billing entry. A workspace starts on a free
+trial and can send messages. The admin chooses seats, enters a card (the number goes from
+the browser straight to the payment provider, never to our server) and pays. Seats can be
+changed later. A canceled workspace can still read its inbox but cannot send.
+
+![Billing](docs/screenshots/12-billing.png)
+
 ## Check and tests
 
 ```
 npm run check               # level 1, about 90 s
 npm run check:full          # levels 1, 2, 3 and 5, about 4 min, writes CHECK_REPORT.json
 npm run check -- --levels 5
-npm --prefix scaffold/server test    # 43 unit and integration tests (needs MongoDB and Redis)
+npm --prefix scaffold/server test    # 54 unit and integration tests (needs MongoDB and Redis)
 ```
 
 The check starts the server itself (see `switchboard.json`), so stop your dev
@@ -138,6 +145,9 @@ agent reply --> outbox (MongoDB) --> sender loop --> Pigeon /v1/messages
 - **Login** (`lib/oidc.ts`, `routes/auth.ts`): authorization code with PKCE,
   the id_token is checked against the IdP's keys, the session lives in Redis.
   Every API call and the WebSocket check workspace membership.
+- **Billing** (`lib/billing.ts`, `lib/paybox.ts`, `routes/paybox.ts`): per-seat subscriptions on
+  Paybox. A webhook only says which customer changed; the subscription is then re-read from
+  Paybox, so a forged or out-of-order event cannot set the state.
 - **Private notes** (`routes/notes.ts`, `scaffold/web/src/crypto.ts`): keys are
   made and used in the browser only; the server stores ciphertext.
 

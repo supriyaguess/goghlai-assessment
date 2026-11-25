@@ -14,7 +14,7 @@
 ## What is cut
 
 - Search (Elasticsearch). Not started.
-- Billing bonus. Built (server and admin screen, Paybox) in a separate copy, but left out of this repository: a full check run with it merged was disturbed by leftover simulator state and I did not have time to re-verify it before the deadline. The transcripts of that work are in `ai-logs/`.
+- Billing bonus: server and admin screen (see Billing below). The seat-change screen was checked through the API tests, not clicked through by hand.
 - No automated frontend tests.
 
 ## Product and design decisions (inbox UI)
@@ -55,3 +55,14 @@ Before redesigning the UI I had it reviewed from a product and from a design poi
 - Level 4 is not in the local check. I sent every case from the answer table in `PIGEON.md` to a running server with a small script and got the documented codes, but I have not seen it scored.
 - The web app was driven through a full session in headless Chrome (login, claim, reply, note, live update, close); the screenshots in `docs/screenshots` come from that run. The narrow-screen layout was checked in the same browser at 390 px wide; other browsers were not tried, and there are no automated frontend tests.
 - Secrets default to the dev values when the environment is empty. The server refuses to start in production without `GRADER_TOKEN`, but not for the others.
+
+## Billing
+
+Server only: Paybox client with idempotency keys, a `billing` collection per workspace, subscribe / seat change / cancel-at-period-end, a signed `POST /webhooks/paybox`, send gating, grader endpoints and an admin-only `/api/billing`. Webhooks never set state: any event only tells us which customer to look at, then the subscription is read again from Paybox and stored. Subscribes for one workspace run one at a time under a Redis lock, so three at once make one customer and one subscription.
+
+- **past_due.** The workspace can keep sending. The customer has not done anything yet and Paybox cancels by itself after the third failed attempt (3 and 5 days later), so the limit is Paybox's own retry schedule, about 8 days. The admin sees the warning and can enter a new card, which replaces the card Paybox retries with. Cost: up to 8 days of sending that may never be paid for.
+- **Seats below headcount.** Allowed. Nobody is removed or blocked, because there is no way to know which agents should lose access and the seat count is not tied to logins anywhere else. The response carries a `warning` with the headcount (from the `people` collection, so it only counts people who have opened the app). Seats are a billing number, not enforced.
+- **Credit on seat reduction.** Yes, the response says the unused part becomes credit on the next invoice and is not refunded. The amount is not shown because Paybox does not return it on this call.
+- **Waiting for the bank.** The workspace is `incomplete` and can still send (it is a free trial until it is active). The UI should say the bank needs approval, link to `nextActionUrl`, and update by itself once the webhook arrives. If the page was closed, the link stays in `GET /api/billing`. An `incomplete` subscription Paybox expires after 23 hours becomes `none` again.
+
+Not done: no card update outside past_due and failed first payments, no invoices list, no proration preview, a `canceled` workspace that subscribes again gets a new subscription on the same customer, and the webhook secret and keys are the development defaults from config. Seat changes on `incomplete` are refused (409). Replies already queued before a cancel are still sent.
