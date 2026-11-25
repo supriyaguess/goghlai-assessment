@@ -3,12 +3,15 @@ import { workspaceName } from '../format';
 import type { Me } from '../types';
 import type { Filter } from './Inbox';
 import { Avatar } from './Avatar';
-import { BrandMark, InboxIcon, UserIcon } from './icons';
+import { BrandMark, CardIcon, InboxIcon, UserIcon } from './icons';
 
 interface Props {
   me: Me;
   workspaces: Me['workspaces'];
   workspace: string;
+  isAdmin: boolean;
+  view: 'inbox' | 'billing';
+  onBilling: () => void;
   onWorkspace: (id: string) => void;
   filter: Filter;
   onFilter: (filter: Filter) => void;
@@ -30,7 +33,7 @@ function useOnline() {
   return online;
 }
 
-export function Rail({ me, workspaces, workspace, onWorkspace, filter, onFilter, connected, onSignOut }: Props) {
+export function Rail({ me, workspaces, workspace, isAdmin, view, onBilling, onWorkspace, filter, onFilter, connected, onSignOut }: Props) {
   const online = useOnline();
   const status = !online ? 'offline' : connected ? 'live' : 'reconnecting';
   const statusText = { live: 'Live', reconnecting: 'Reconnecting...', offline: 'Offline' }[status];
@@ -43,7 +46,7 @@ export function Rail({ me, workspaces, workspace, onWorkspace, filter, onFilter,
           className="rail-btn"
           aria-label="Inbox"
           title="Inbox"
-          aria-current={filter !== 'mine' ? 'page' : undefined}
+          aria-current={view === 'inbox' && filter !== 'mine' ? 'page' : undefined}
           onClick={() => onFilter('open')}
         >
           <InboxIcon size={20} />
@@ -52,11 +55,22 @@ export function Rail({ me, workspaces, workspace, onWorkspace, filter, onFilter,
           className="rail-btn"
           aria-label="Mine"
           title="Assigned to me"
-          aria-current={filter === 'mine' ? 'page' : undefined}
+          aria-current={view === 'inbox' && filter === 'mine' ? 'page' : undefined}
           onClick={() => onFilter('mine')}
         >
           <UserIcon size={20} />
         </button>
+        {isAdmin && (
+          <button
+            className="rail-btn"
+            aria-label="Billing"
+            title="Billing"
+            aria-current={view === 'billing' ? 'page' : undefined}
+            onClick={onBilling}
+          >
+            <CardIcon size={20} />
+          </button>
+        )}
       </div>
       <div className="rail-group rail-workspaces" role="group" aria-label="Workspaces">
         {workspaces.map((w) => (
@@ -74,13 +88,13 @@ export function Rail({ me, workspaces, workspace, onWorkspace, filter, onFilter,
       </div>
       <div className="rail-bottom">
         <span className={`conn conn-${status}`} role="img" aria-label={`Connection: ${statusText}`} title={statusText} />
-        <UserMenu me={me} onSignOut={onSignOut} />
+        <UserMenu me={me} isAdmin={isAdmin} onBilling={onBilling} onSignOut={onSignOut} />
       </div>
     </nav>
   );
 }
 
-function UserMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
+function UserMenu({ me, isAdmin, onBilling, onSignOut }: { me: Me; isAdmin: boolean; onBilling: () => void; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -117,6 +131,18 @@ function UserMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             <strong>{me.name}</strong>
             <span>{me.email}</span>
           </div>
+          {isAdmin && (
+            <button
+              className="menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onBilling();
+              }}
+            >
+              Billing
+            </button>
+          )}
           <button className="menu-item" role="menuitem" onClick={onSignOut}>Sign out</button>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { SendIcon } from './icons';
 
 const MAX_LENGTH = 4000;
@@ -8,9 +8,10 @@ const WARN_COUNTER = MAX_LENGTH * 0.9;
 interface Props {
   onSend: (text: string) => void;
   disabledReason?: string;
+  reasonAction?: ReactNode;
 }
 
-export function ReplyBox({ onSend, disabledReason }: Props) {
+export function ReplyBox({ onSend, disabledReason, reasonAction }: Props) {
   const [text, setText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
   const trimmed = text.trim();
@@ -50,7 +51,12 @@ export function ReplyBox({ onSend, disabledReason }: Props) {
       }}
     >
       <div className={`composer-card${disabled ? ' is-disabled' : ''}`}>
-        {disabledReason && <p className="composer-reason">{disabledReason}</p>}
+        {disabledReason && (
+          <p className="composer-reason">
+            {disabledReason}
+            {reasonAction}
+          </p>
+        )}
         <label htmlFor="reply-text" className="visually-hidden">Reply</label>
         <textarea
           id="reply-text"

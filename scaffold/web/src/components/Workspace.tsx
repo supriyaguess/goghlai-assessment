@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { formatPhone } from '../format';
+import { useBilling } from '../billing';
 import { PeopleContext, usePeople } from '../people';
 import { useUnread } from '../unread';
 import { useLatest } from '../useLatest';
 import { useSocket } from '../useSocket';
 import type { Frame, Me } from '../types';
+import { BillingScreen } from './billing/BillingScreen';
 import { Inbox, type Filter } from './Inbox';
 import { Rail } from './Rail';
 import { Thread, type Panel } from './Thread';
@@ -25,6 +27,9 @@ export function Workspace({ me, workspaces, workspace, isAdmin, onWorkspace, onS
   const [filter, setFilter] = useState<Filter>('open');
   const [contact, setContact] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [view, setView] = useState<'inbox' | 'billing'>('inbox');
+  const [sendBlocked, setSendBlocked] = useState(false);
+  const billing = useBilling(workspace, isAdmin);
   const [announcement, setAnnouncement] = useState('');
   const openContact = useLatest(contact);
 
@@ -63,7 +68,19 @@ export function Workspace({ me, workspaces, workspace, isAdmin, onWorkspace, onS
     setContact(next);
   }
 
-  const showPanel = contact !== null && panel !== null;
+  const showPanel = view === 'inbox' && contact !== null && panel !== null;
+  const billingStatus = billing.billing?.status ?? null;
+  const sendPaused = billingStatus === 'canceled' || (sendBlocked && (!isAdmin || billingStatus === null));
+
+  function pauseSending() {
+    setSendBlocked(true);
+    if (isAdmin) billing.refresh();
+  }
+
+  function chooseFilter(next: Filter) {
+    setView('inbox');
+    setFilter(next);
+  }
 
   return (
     <PeopleContext.Provider value={people}>
@@ -74,11 +91,18 @@ export function Workspace({ me, workspaces, workspace, isAdmin, onWorkspace, onS
           workspaces={workspaces}
           workspace={workspace}
           onWorkspace={onWorkspace}
+          isAdmin={isAdmin}
+          view={view}
+          onBilling={() => setView('billing')}
           filter={filter}
-          onFilter={setFilter}
+          onFilter={chooseFilter}
           connected={connected}
           onSignOut={onSignOut}
         />
+        {view === 'billing' ? (
+          <BillingScreen workspace={workspace} isAdmin={isAdmin} state={billing} />
+        ) : (
+        <>
         <Inbox
           me={me}
           workspace={workspace}
@@ -97,6 +121,10 @@ export function Workspace({ me, workspaces, workspace, isAdmin, onWorkspace, onS
             workspace={workspace}
             contact={contact}
             isAdmin={isAdmin}
+            billingStatus={billingStatus}
+            sendPaused={sendPaused}
+            onSendPaused={pauseSending}
+            onOpenBilling={() => setView('billing')}
             subscribe={subscribe}
             epoch={epoch}
             panel={panel}
@@ -107,6 +135,8 @@ export function Workspace({ me, workspaces, workspace, isAdmin, onWorkspace, onS
           <main className="thread-empty" id="thread" tabIndex={-1} aria-label="Conversation">
             <p>Pick a conversation to start.</p>
           </main>
+        )}
+        </>
         )}
         {showPanel && <div className="scrim" onClick={() => setPanel(null)} />}
       </div>

@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ApiError, conversationPath, errorText, get, post } from '../api';
+import type { BillingStatus } from '../billing';
 import { useLatest } from '../useLatest';
 import { addMessage, layoutMessages, setStatus } from '../messages';
 import { dayLabel, formatPhone } from '../format';
@@ -18,6 +19,10 @@ interface Props {
   workspace: string;
   contact: string;
   isAdmin: boolean;
+  billingStatus: BillingStatus | null;
+  sendPaused: boolean;
+  onSendPaused: () => void;
+  onOpenBilling: () => void;
   subscribe: Subscribe;
   epoch: number;
   panel: Panel | null;
@@ -33,7 +38,7 @@ interface MessagePage {
 
 const NEAR_BOTTOM = 80;
 
-export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch, panel, onPanel, onBack }: Props) {
+export function Thread({ me, workspace, contact, isAdmin, billingStatus, sendPaused, onSendPaused, onOpenBilling, subscribe, epoch, panel, onPanel, onBack }: Props) {
   const [conversation, setConversation] = useState<ConversationInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [older, setOlder] = useState<string | null>(null);
@@ -172,9 +177,14 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch, pane
         if (err instanceof ApiError) throw err;
         await post(path, body);
       }
-    } catch {
+    } catch (err) {
       setMessages((current) => setStatus(current, clientRef, 'failed'));
-      toast.show("Couldn't send. Check your connection.", 'error');
+      if (err instanceof ApiError && err.status === 402) {
+        onSendPaused();
+        toast.show("Sending is paused: this workspace's subscription is canceled. Ask an admin.", 'error');
+      } else {
+        toast.show("Couldn't send. Check your connection.", 'error');
+      }
     }
   }
 
@@ -227,6 +237,22 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch, pane
   const rows = layoutMessages(messages);
 
   function composer() {
+    if (sendPaused) {
+      return (
+        <ReplyBox
+          onSend={send}
+          disabledReason="Sending is paused because the subscription was canceled. An admin can resubscribe in Billing."
+          reasonAction={
+            isAdmin ? (
+              <>
+                {' '}
+                <button type="button" className="link-btn" onClick={onOpenBilling}>Open Billing</button>
+              </>
+            ) : undefined
+          }
+        />
+      );
+    }
     if (closed) {
       return (
         <div className="closed-bar">
@@ -248,6 +274,12 @@ export function Thread({ me, workspace, contact, isAdmin, subscribe, epoch, pane
   return (
     <>
       <main className="thread" id="thread" tabIndex={-1} aria-label={`Conversation with ${formatPhone(contact)}`}>
+        {isAdmin && billingStatus === 'past_due' && (
+          <p className="thread-notice">
+            The last subscription payment did not go through.{' '}
+            <button type="button" className="link-btn" onClick={onOpenBilling}>Review billing</button>
+          </p>
+        )}
         <ThreadHeader
           contact={contact}
           conversation={conversation}

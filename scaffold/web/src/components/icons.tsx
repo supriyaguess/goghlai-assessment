@@ -118,3 +118,10 @@ export const SearchIcon = (p: IconProps) => (
     <path d="M20 20l-4-4" />
   </Icon>
 );
+
+export const CardIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M2 10h20M6 15h4" />
+  </Icon>
+);
