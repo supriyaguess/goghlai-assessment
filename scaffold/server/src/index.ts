@@ -5,6 +5,9 @@ import { ensureIndexes } from './db.js';
 import { getRedis } from './redis.js';
 import { webhook } from './routes/webhook.js';
 import { grader } from './routes/grader.js';
+import { auth } from './routes/auth.js';
+import { api } from './routes/api.js';
+import { attachWebSocket } from './ws.js';
 import { startSender, stopSender } from './lib/outbox.js';
 
 const app = express();
@@ -17,6 +20,8 @@ app.get('/healthz', (_req, res) => {
 
 app.use(webhook);
 app.use(grader);
+app.use(auth);
+app.use(api);
 
 const onError: ErrorRequestHandler = (err, _req, res, _next) => {
   const status = Number(err?.status) >= 400 && Number(err?.status) < 500 ? err.status : 500;
@@ -26,6 +31,7 @@ const onError: ErrorRequestHandler = (err, _req, res, _next) => {
 app.use(onError);
 
 const server = createServer(app);
+attachWebSocket(server);
 
 async function main() {
   server.listen(config.port, () => console.log(`server on http://localhost:${config.port}`));
