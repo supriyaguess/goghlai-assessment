@@ -21,7 +21,9 @@ npm run scaffold:web        # web app on http://localhost:5173
 
 Open http://localhost:5173. Settings come from the environment; the defaults
 match the local Docker services, so no `.env` is needed. `.env.example` lists
-every variable. `GRADER_TOKEN` must be set explicitly when `NODE_ENV=production`.
+every variable. `GRADER_TOKEN` must be set explicitly when `NODE_ENV=production`; without it the check endpoints
+(`/__grader/*`) use a random token and cannot be called. The check sets it itself; for your own
+curl calls use `GRADER_TOKEN=grader-dev-token`.
 
 No Docker: `npm run mocks` starts the simulators with plain Node, and
 `MONGO_URL` / `REDIS_URL` can point at any MongoDB and Redis.
@@ -94,7 +96,7 @@ screen, with a Back button.
 npm run check               # level 1, about 90 s
 npm run check:full          # levels 1, 2, 3 and 5, about 4 min, writes CHECK_REPORT.json
 npm run check -- --levels 5
-npm --prefix scaffold/server test    # 41 unit and integration tests (needs MongoDB and Redis)
+npm --prefix scaffold/server test    # 43 unit and integration tests (needs MongoDB and Redis)
 ```
 
 The check starts the server itself (see `switchboard.json`), so stop your dev

@@ -14,7 +14,7 @@
 ## What is cut
 
 - Search (Elasticsearch). Not started.
-- Billing bonus. Not started.
+- Billing bonus. Built (server and admin screen, Paybox) in a separate copy, but left out of this repository: a full check run with it merged was disturbed by leftover simulator state and I did not have time to re-verify it before the deadline. The transcripts of that work are in `ai-logs/`.
 - No automated frontend tests.
 
 ## Product and design decisions (inbox UI)
